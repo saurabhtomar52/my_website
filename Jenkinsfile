@@ -5,34 +5,40 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building website...'
-                sh 'ls -la'
+                echo 'Building Docker image...'
+
+                sh 'sudo docker build -t my-website .'
             }
         }
 
-        stage('Deploy') {
+        stage('Stop Old Container') {
             steps {
                 sh '''
-                    sudo rm -rf /var/www/html/*
-                    sudo cp -r ./* /var/www/html/
+                    sudo docker stop my-website-container || true
+                    sudo docker rm my-website-container || true
                 '''
             }
         }
 
-        stage('Restart Apache') {
+        stage('Run New Container') {
             steps {
-                sh 'sudo systemctl reload apache2'
+                sh '''
+                    sudo docker run -d \
+                    --name my-website-container \
+                    -p 8081:80 \
+                    my-website
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'Website deployed successfully!'
+            echo 'Website deployed successfully using Docker!'
         }
 
         failure {
-            echo 'Deployment failed!'
+            echo 'Docker deployment failed!'
         }
     }
 }
